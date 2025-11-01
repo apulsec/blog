@@ -1,0 +1,85 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: blog-article-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15432}/${DB_NAME:blog_article_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USER:root}:${MONGO_PASSWORD:password}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:blog_content_db}?authSource=admin
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true # CRITICAL: This is the correct property path for Spring Cloud 2023.x
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:false} # Disable Eureka by default for standalone testing
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    register-with-eureka: ${EUREKA_ENABLED:false}
+    fetch-registry: ${EUREKA_ENABLED:false}
+  instance:
+    prefer-ip-address: true
+
+# Feign Client Configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+
+# JWT Configuration (must match auth-service)
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:c2VjcmV0LWtleS1mb3ItZGVtby1wdXJwb3Nlcy1tdXN0LWJlLXJlcGxhY2VkLWluLXByb2Q=}
+
+# User Service Configuration
+user-service:
+  url: ${USER_SERVICE_URL:http://localhost:8083}
+
+# Resilience4j Circuit Breaker configuration for user service calls
+resilience4j:
+  circuitbreaker:
+    instances:
+      userService:
+        failure-rate-threshold: 50 # Percentage of failures to open the circuit
+        sliding-window-size: 10 # Number of requests to calculate failure rate
+        minimum-number-of-calls: 5 # Minimum requests before calculating failure rate
+        wait-duration-in-open-state: 10s # Duration the circuit stays open
+        permitted-number-of-calls-in-half-open-state: 3 # Number of test requests in half-open state
+
+# MyBatis Plus Configuration
+mybatis-plus:
+  mapper-locations: classpath:/mapper/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    defaults:
+      enabled: true

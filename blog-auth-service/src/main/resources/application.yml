@@ -1,0 +1,47 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: local
+  application:
+    name: blog-auth-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+# User Service Configuration
+user-service:
+  url: ${USER_SERVICE_URL:http://localhost:8083}
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+
+# Actuator endpoints for health monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Custom application properties
+app:
+  jwt:
+    # IMPORTANT: This secret key is for demonstration purposes only.
+    # In a production environment, it MUST be replaced with a long, secure, Base64-encoded secret.
+    # It can be generated using a tool like `openssl rand -base64 32`.
+    # Store it securely, for example, in environment variables or a secret management service.
+    secret-key: ${JWT_SECRET_KEY:c2VjcmV0LWtleS1mb3ItZGVtby1wdXJwb3Nlcy1tdXN0LWJlLXJlcGxhY2VkLWluLXByb2Q=}
+    access-token-expiration-ms: 3600000 # 1 hour
+    refresh-token-expiration-ms: 604800000 # 7 days

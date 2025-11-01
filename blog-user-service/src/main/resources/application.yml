@@ -1,0 +1,56 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: blog-user-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15432}/blog_user_db
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:false} # Disable Eureka by default for standalone testing
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    register-with-eureka: ${EUREKA_ENABLED:false}
+    fetch-registry: ${EUREKA_ENABLED:false}
+  instance:
+    prefer-ip-address: true
+
+# MyBatis Plus Configuration
+mybatis-plus:
+  mapper-locations: classpath:/mapper/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+
+# Actuator endpoints for health monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:c2VjcmV0LWtleS1mb3ItZGVtby1wdXJwb3Nlcy1tdXN0LWJlLXJlcGxhY2VkLWluLXByb2Q=}
+  avatar:
+    upload-dir: ${AVATAR_UPLOAD_DIR:uploads/avatars}
