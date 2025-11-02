@@ -1,13 +1,3 @@
-git clone YOUR_REMOTE_URL blog
-docker compose up -d
-docker compose ps
-docker exec -it blog-postgres psql -U postgres -c "SELECT version();"
-docker exec -it blog-mongo mongosh --eval "db.runCommand({ ping: 1 })"
-docker exec -it blog-redis redis-cli ping
-docker exec -it blog-postgres psql -U postgres -c "\l"
-docker exec -it blog-postgres psql -U postgres -d blog_article_db -c "\dt"
-docker exec -it blog-postgres psql -U postgres -d blog_user_db -c "\dt"
-
 # 本地环境搭建手册
 
 本文档面向第一天加入项目的同学，按照顺序执行脚本即可在本地启动完整的博客平台（前端 + 三个后端微服务）。所有示例均以 Windows PowerShell (`pwsh`) 为例。
