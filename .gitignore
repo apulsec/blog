@@ -1,0 +1,16 @@
+/blog-auth-service/target/
+/blog-auth-service/*.jar
+/blog-auth-service/*.war
+
+/blog-article-service/target/
+/blog-article-service/*.jar 
+/blog-article-service/*.war
+
+/blog-user-service/target/
+/blog-user-service/*.jar
+/blog-user-service/*.war
+
+/blog-frontend/dist/
+/blog-frontend/node_modules/
+
+
