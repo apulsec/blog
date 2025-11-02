@@ -11,12 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
  * 
  * The fallback mechanism ensures resilience when the user service is unavailable.
  * 
- * Note: When Eureka is disabled, this client uses a static URL. 
- * The fallback will be triggered if the service is not available.
+ * Note: Eureka discovery is preferred. When discovery is disabled, set user-service.url to a
+ * direct endpoint so the client can still operate.
  */
 @FeignClient(
     name = "blog-user-service", 
-    url = "${user-service.url:http://localhost:8081}",
+    url = "${user-service.url:}",
     fallbackFactory = UserServiceClientFallbackFactory.class
 )
 public interface UserServiceClient {

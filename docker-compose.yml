@@ -1,6 +1,14 @@
 version: "3.8"
 
 services:
+  eureka:
+    build: ./blog-eureka-server
+    container_name: blog-eureka
+    ports:
+      - "18761:8761"
+    networks:
+      - blog-network
+
   postgres:
     image: postgres:14-alpine
     container_name: blog-postgres

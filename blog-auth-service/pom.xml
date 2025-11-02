@@ -85,6 +85,12 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+
+        <!-- Eureka Client: Enables service registration and discovery -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
         
         <!-- Spring Boot Test Starter: Provides testing support including JUnit 5, Spring Test, and AssertJ -->
         <dependency>

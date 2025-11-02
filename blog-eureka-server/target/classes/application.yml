@@ -1,0 +1,23 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: blog-eureka-server
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# Ensure the Eureka server does not act as a client of itself
+# to avoid unnecessary network chatter during development.
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  server:
+    enable-self-preservation: false

@@ -7,12 +7,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 /**
  * Feign client used to create notifications via blog-user-service.
+ *
+ * Eureka discovery is used by default. When running without Eureka, set user-service.url to the
+ * target REST endpoint so notifications can still be delivered.
  */
 @FeignClient(
-        name = "blog-user-service",
-        contextId = "notificationClient",
-        url = "${user-service.url:http://localhost:8081}",
-        fallbackFactory = NotificationClientFallbackFactory.class
+    name = "blog-user-service",
+    contextId = "notificationClient",
+    url = "${user-service.url:}",
+    fallbackFactory = NotificationClientFallbackFactory.class
 )
 public interface NotificationClient {
 

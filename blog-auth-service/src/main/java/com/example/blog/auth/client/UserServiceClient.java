@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.RequestParam;
  * Provides methods to retrieve user authentication details.
  * 
  * The URL can be configured via application.yml using:
- * - Service discovery: name = "blog-user-service" (when Eureka is enabled)
- * - Direct URL: url = "http://localhost:8083" (for standalone mode)
+ * - Eureka discovery by default (blank URL)
+ * - Direct URL override via user-service.url when service discovery is disabled
  */
 @FeignClient(
     name = "blog-user-service",
-    url = "${user-service.url:http://localhost:8083}",
+    url = "${user-service.url:}",
     fallback = UserServiceClientFallback.class
 )
 public interface UserServiceClient {

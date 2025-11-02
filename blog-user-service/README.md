@@ -233,14 +233,14 @@ Authorization: Bearer <JWT>
 | `DB_PORT`        | 5432                          | PostgreSQL 端口      |
 | `DB_USER`        | postgres                      | 数据库用户名         |
 | `DB_PASSWORD`    | password                      | 数据库密码           |
-| `EUREKA_ENABLED` | false                         | 是否启用 Eureka 注册 |
-| `EUREKA_URI`     | http://localhost:8761/eureka/ | Eureka 服务器地址    |
+| `EUREKA_ENABLED` | true                          | 是否启用 Eureka 注册 |
+| `EUREKA_URI`     | http://localhost:8761/eureka/ | Eureka 服务器地址（使用 Docker 时请设置为 `http://localhost:18761/eureka/`） |
 
 ### application.yml 配置要点
 
 - **服务端口**: 8083
 - **数据库**: 自动创建/更新表结构 (`ddl-auto: update`)
-- **Eureka**: 默认禁用，便于独立测试
+- **Eureka**: 默认启用，可通过环境变量控制注册行为
 
 ## 快速启动
 

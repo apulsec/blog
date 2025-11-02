@@ -11,10 +11,24 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    register-with-eureka: ${EUREKA_REGISTER:true}
+    fetch-registry: ${EUREKA_FETCH:true}
+  instance:
+    prefer-ip-address: true
 
 # User Service Configuration
 user-service:
-  url: ${USER_SERVICE_URL:http://localhost:8083}
+  url: ${USER_SERVICE_URL:}
 
 # Feign Configuration
 feign:
