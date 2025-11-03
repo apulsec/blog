@@ -65,8 +65,70 @@ export const useArticleStore = defineStore("article", () => {
         );
       }
 
+      let processedArticles = filteredArticles;
+
+      if (authorId) {
+        // Personal pages sometimes miss interaction counts, patch them via detail queries.
+        const articlesNeedingStats = filteredArticles.filter(
+          (article) =>
+            article.likesCount === undefined ||
+            article.commentsCount === undefined
+        );
+
+        if (articlesNeedingStats.length > 0) {
+          const statsById = new Map();
+
+          await Promise.allSettled(
+            articlesNeedingStats.map(async (article) => {
+              try {
+                const detailResponse = await articleApi.getArticleById(
+                  article.id
+                );
+                statsById.set(article.id, detailResponse.data);
+              } catch (detailError) {
+                console.warn(
+                  "Failed to backfill article stats",
+                  article.id,
+                  detailError
+                );
+              }
+            })
+          );
+
+          processedArticles = filteredArticles.map((article) => {
+            const detail = statsById.get(article.id);
+            return detail
+              ? {
+                  ...article,
+                  likesCount:
+                    detail.likesCount ??
+                    detail.likeCount ??
+                    article.likesCount ??
+                    0,
+                  commentsCount:
+                    detail.commentsCount ??
+                    detail.commentCount ??
+                    article.commentsCount ??
+                    0,
+                }
+              : article;
+          });
+        }
+      }
+
+      processedArticles = processedArticles.map((article) => ({
+        ...article,
+        likesCount:
+          article.likesCount ?? article.likeCount ?? article.likes ?? 0,
+        commentsCount:
+          article.commentsCount ??
+          article.commentCount ??
+          article.comments ??
+          0,
+      }));
+
       // Update state with response data
-      articles.value = filteredArticles;
+      articles.value = processedArticles;
       currentPage.value = response.data.current;
       pageSize.value = response.data.size;
       totalItems.value =

@@ -1,16 +1,17 @@
 package com.example.blog.article.service;
 
-import com.example.blog.article.client.NotificationClient;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.blog.article.client.UserServiceClient;
+import com.example.blog.article.dto.ArticleSummaryDTO;
 import com.example.blog.article.dto.CommentDTO;
 import com.example.blog.article.dto.CreateNotificationRequest;
 import com.example.blog.article.dto.UserDTO;
 import com.example.blog.article.entity.Article;
-import com.example.blog.article.entity.ArticleLike;
 import com.example.blog.article.entity.Comment;
 import com.example.blog.article.mapper.ArticleMapper;
 import com.example.blog.article.mapper.ArticleTagMapper;
 import com.example.blog.article.mapper.TagMapper;
+import com.example.blog.article.messaging.ArticleNotificationPublisher;
 import com.example.blog.article.repository.ArticleContentRepository;
 import com.example.blog.article.repository.ArticleLikeRepository;
 import com.example.blog.article.repository.CommentRepository;
@@ -22,11 +23,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +40,7 @@ class ArticleServiceImplTest {
     private UserServiceClient userServiceClient;
 
     @Mock
-    private NotificationClient notificationClient;
+    private ArticleNotificationPublisher notificationPublisher;
 
     @Mock
     private ArticleContentRepository articleContentRepository;
@@ -68,14 +69,13 @@ class ArticleServiceImplTest {
 
         when(articleMapper.selectById(12L)).thenReturn(article);
         when(articleLikeRepository.findByArticleIdAndUserId(12L, 7L)).thenReturn(Optional.empty());
-        when(articleLikeRepository.save(any(ArticleLike.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         articleService.likeArticle(12L, 7L);
 
         verify(articleMapper).incrementLikesCount(12L);
 
         ArgumentCaptor<CreateNotificationRequest> captor = ArgumentCaptor.forClass(CreateNotificationRequest.class);
-        verify(notificationClient).createNotification(captor.capture());
+    verify(notificationPublisher).publish(captor.capture());
         CreateNotificationRequest request = captor.getValue();
 
         assertThat(request.getUserId()).isEqualTo(42L);
@@ -93,7 +93,7 @@ class ArticleServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Article not found");
 
-        verifyNoInteractions(notificationClient);
+    verifyNoInteractions(notificationPublisher);
     }
 
     @Test
@@ -105,14 +105,14 @@ class ArticleServiceImplTest {
 
         when(articleMapper.selectById(33L)).thenReturn(article);
         when(articleLikeRepository.findByArticleIdAndUserId(33L, 5L)).thenReturn(Optional.empty());
-        when(articleLikeRepository.save(any(ArticleLike.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         articleService.likeArticle(33L, 5L);
 
         verify(articleMapper).incrementLikesCount(33L);
-        verifyNoInteractions(notificationClient);
+    verifyNoInteractions(notificationPublisher);
     }
 
+    @SuppressWarnings("null")
     @Test
     void createComment_shouldCreateNotificationWithPreview() {
         Article article = new Article();
@@ -131,7 +131,7 @@ class ArticleServiceImplTest {
         saved.setCreatedAt(LocalDateTime.now());
         saved.setUpdatedAt(LocalDateTime.now());
 
-        when(commentRepository.save(any(Comment.class))).thenReturn(saved);
+    when(commentRepository.save(org.mockito.ArgumentMatchers.<Comment>notNull())).thenReturn(saved);
 
         UserDTO actor = new UserDTO();
         actor.setId(77L);
@@ -148,7 +148,7 @@ class ArticleServiceImplTest {
         assertThat(dto.getAuthor().getUsername()).isEqualTo("reader77");
 
         ArgumentCaptor<CreateNotificationRequest> captor = ArgumentCaptor.forClass(CreateNotificationRequest.class);
-        verify(notificationClient).createNotification(captor.capture());
+    verify(notificationPublisher).publish(captor.capture());
         CreateNotificationRequest request = captor.getValue();
 
         assertThat(request.getUserId()).isEqualTo(10L);
@@ -167,9 +167,10 @@ class ArticleServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Article not found");
 
-        verifyNoInteractions(notificationClient);
+    verifyNoInteractions(notificationPublisher);
     }
 
+    @SuppressWarnings("null")
     @Test
     void createComment_shouldSkipNotificationWhenActorIsAuthor() {
         Article article = new Article();
@@ -187,7 +188,7 @@ class ArticleServiceImplTest {
         saved.setContent("Thanks for reading");
         saved.setCreatedAt(LocalDateTime.now());
         saved.setUpdatedAt(LocalDateTime.now());
-        when(commentRepository.save(any(Comment.class))).thenReturn(saved);
+    when(commentRepository.save(org.mockito.ArgumentMatchers.<Comment>notNull())).thenReturn(saved);
 
         UserDTO actor = new UserDTO();
         actor.setId(77L);
@@ -196,6 +197,43 @@ class ArticleServiceImplTest {
 
         articleService.createComment(60L, 77L, null, "Thanks for reading");
 
-        verifyNoInteractions(notificationClient);
+    verifyNoInteractions(notificationPublisher);
+    }
+
+    @Test
+    void getArticlesByAuthor_shouldReturnInteractionCounts() {
+        when(articleTagMapper.selectList(any())).thenReturn(Collections.emptyList());
+
+        when(articleMapper.selectPage(any(Page.class), any())).thenAnswer(invocation -> {
+            Page<Article> pageArg = invocation.getArgument(0);
+
+            Article article = new Article();
+            article.setId(200L);
+            article.setAuthorId(42L);
+            article.setTitle("Reactive Spring");
+            article.setSummary("Guide to reactive programming");
+            article.setCoverImageUrl("cover.png");
+            article.setStatus("PUBLISHED");
+            article.setPublishTime(LocalDateTime.now());
+            article.setLikesCount(5);
+            article.setCommentsCount(3);
+
+            pageArg.setRecords(Collections.singletonList(article));
+            pageArg.setTotal(1);
+            return pageArg;
+        });
+
+        UserDTO author = new UserDTO();
+        author.setId(42L);
+        author.setUsername("author42");
+        author.setAvatarUrl("avatar.png");
+        when(userServiceClient.getUserById(42L)).thenReturn(author);
+
+        Page<ArticleSummaryDTO> result = articleService.getArticlesByAuthor(new Page<>(1, 10), 42L);
+
+        assertThat(result.getRecords()).hasSize(1);
+        ArticleSummaryDTO dto = result.getRecords().get(0);
+        assertThat(dto.getLikesCount()).isEqualTo(5);
+        assertThat(dto.getCommentsCount()).isEqualTo(3);
     }
 }

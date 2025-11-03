@@ -45,6 +45,18 @@ services:
     networks:
       - blog-network
 
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: blog-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - blog-network
+
 volumes:
   postgres_data:
   mongo_data:

@@ -2,7 +2,6 @@ package com.example.blog.article.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.example.blog.article.client.NotificationClient;
 import com.example.blog.article.client.UserServiceClient;
 import com.example.blog.article.dto.ArticleSummaryDTO;
 import com.example.blog.article.dto.CreateArticleRequest;
@@ -16,6 +15,7 @@ import com.example.blog.article.entity.Tag;
 import com.example.blog.article.mapper.ArticleMapper;
 import com.example.blog.article.mapper.ArticleTagMapper;
 import com.example.blog.article.mapper.TagMapper;
+import com.example.blog.article.messaging.ArticleNotificationPublisher;
 import com.example.blog.article.repository.ArticleContentRepository;
 import com.example.blog.article.repository.ArticleLikeRepository;
 import com.example.blog.article.repository.CommentRepository;
@@ -61,7 +61,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     private final ArticleMapper articleMapper;
     private final UserServiceClient userServiceClient;
-    private final NotificationClient notificationClient;
+    private final ArticleNotificationPublisher notificationPublisher;
     private final ArticleContentRepository articleContentRepository;
     private final TagMapper tagMapper;
     private final ArticleTagMapper articleTagMapper;
@@ -70,7 +70,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     public ArticleServiceImpl(ArticleMapper articleMapper,
                               UserServiceClient userServiceClient,
-                              NotificationClient notificationClient,
+                              ArticleNotificationPublisher notificationPublisher,
                               ArticleContentRepository articleContentRepository,
                               TagMapper tagMapper,
                               ArticleTagMapper articleTagMapper,
@@ -78,7 +78,7 @@ public class ArticleServiceImpl implements ArticleService {
                               CommentRepository commentRepository) {
         this.articleMapper = articleMapper;
         this.userServiceClient = userServiceClient;
-        this.notificationClient = notificationClient;
+    this.notificationPublisher = notificationPublisher;
         this.articleContentRepository = articleContentRepository;
         this.tagMapper = tagMapper;
         this.articleTagMapper = articleTagMapper;
@@ -595,6 +595,8 @@ public class ArticleServiceImpl implements ArticleService {
             dto.setCoverImageUrl(article.getCoverImageUrl());
             dto.setPublishTime(article.getPublishTime());
             dto.setStatus(article.getStatus());
+            dto.setLikesCount(article.getLikesCount() != null ? article.getLikesCount() : 0);
+            dto.setCommentsCount(article.getCommentsCount() != null ? article.getCommentsCount() : 0);
             
             UserDTO user = authorMap.get(article.getAuthorId());
             if (user != null) {
@@ -648,7 +650,7 @@ public class ArticleServiceImpl implements ArticleService {
     @Transactional
     public void unlikeArticle(Long articleId, Long userId) {
         articleLikeRepository.findByArticleIdAndUserId(articleId, userId).ifPresent(like -> {
-            articleLikeRepository.delete(like);
+            articleLikeRepository.delete(Objects.requireNonNull(like));
             // Update likes_count in articles table
             articleMapper.decrementLikesCount(articleId);
         });
@@ -695,6 +697,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<CommentDTO> getCommentsByArticle(Long articleId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -702,7 +705,7 @@ public class ArticleServiceImpl implements ArticleService {
                 commentRepository.findByArticleIdAndParentIsNull(articleId, pageable);
 
         if (commentPage.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, commentPage.getTotalElements());
+            return new PageImpl<>(Collections.<CommentDTO>emptyList(), pageable, commentPage.getTotalElements());
         }
 
         Set<Long> userIds = new HashSet<>();
@@ -719,6 +722,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    @SuppressWarnings("null")
     @Transactional
     public void deleteComment(Long articleId, Long commentId, Long userId) {
         Comment comment = commentRepository.findById(commentId)
@@ -737,7 +741,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     private void sendArticleInteractionNotification(Article article, Long actorId, String type, String content) {
-        if (notificationClient == null || article == null) {
+        if (article == null) {
             return;
         }
 
@@ -756,11 +760,7 @@ public class ArticleServiceImpl implements ArticleService {
             request.setContent(content);
         }
 
-        try {
-            notificationClient.createNotification(request);
-        } catch (Exception ex) {
-            log.warn("Failed to send {} notification for article {}: {}", type, article.getId(), ex.getMessage());
-        }
+        notificationPublisher.publish(request);
     }
 
     private String buildCommentPreview(String content) {

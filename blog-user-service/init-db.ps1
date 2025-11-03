@@ -1,16 +1,29 @@
-# 博客用户服务 - PostgreSQL 数据库初始化脚本
-# 用途: 初始化 blog_user_db 数据库和表结构
+# 此脚本已整合至仓库根目录的 init-databases.ps1# 博客用户服务 - PostgreSQL 数据库初始化脚本
 
-Write-Host "================================================" -ForegroundColor Cyan
+# 保留此入口以兼容旧流程# 用途: 初始化 blog_user_db 数据库和表结构
+
+
+
+Write-Host "该初始化脚本已迁移至仓库根目录的 init-databases.ps1，当前将转调新脚本..." -ForegroundColor YellowWrite-Host "================================================" -ForegroundColor Cyan
+
 Write-Host "  博客用户服务 - 数据库初始化工具" -ForegroundColor Cyan
-Write-Host "================================================" -ForegroundColor Cyan
-Write-Host ""
 
-# 检查 Docker 是否可用
-Write-Host "[1/4] 检查 Docker 环境..." -ForegroundColor Yellow
-$dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
+$rootScript = Join-Path $PSScriptRoot "..\init-databases.ps1"Write-Host "================================================" -ForegroundColor Cyan
+
+if (-not (Test-Path $rootScript)) {Write-Host ""
+
+    Write-Host "✗ 未找到根目录脚本: $rootScript" -ForegroundColor Red
+
+    Write-Host "  请确认仓库根目录存在 init-databases.ps1" -ForegroundColor Yellow# 检查 Docker 是否可用
+
+    exit 1Write-Host "[1/4] 检查 Docker 环境..." -ForegroundColor Yellow
+
+}$dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
+
 if (-not $dockerCmd) {
-    Write-Host "✗ Docker 命令不可用!" -ForegroundColor Red
+
+& $rootScript @args    Write-Host "✗ Docker 命令不可用!" -ForegroundColor Red
+
     Write-Host "  请确保 Docker Desktop 已安装并运行" -ForegroundColor Yellow
     exit 1
 }

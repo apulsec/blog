@@ -9,6 +9,56 @@ Write-Host ""
 $rootPath = $PSScriptRoot
 
 # ============================================================
+# 工具函数: 释放指定端口
+# ============================================================
+function Stop-ProcessUsingPort {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$Port,
+        [string]$ServiceName = "服务",
+        [int]$TimeoutSeconds = 15
+    )
+
+    $connections = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
+    if (-not $connections) {
+        return
+    }
+
+    $processIds = $connections
+        | Select-Object -ExpandProperty OwningProcess -Unique
+        | Where-Object { $_ -and $_ -gt 4 }
+
+    if (-not $processIds) {
+        Write-Host "  ⚠ 端口 $Port 被系统进程占用，无法自动终止 (Service: $ServiceName)" -ForegroundColor Yellow
+        return
+    }
+
+    foreach ($pid in $processIds) {
+        try {
+            $proc = Get-Process -Id $pid -ErrorAction Stop
+            Write-Host "  检测到端口 $Port 被 $($proc.ProcessName) (PID $pid) 占用，尝试终止以启动 $ServiceName ..." -ForegroundColor Yellow
+            Stop-Process -Id $pid -Force -ErrorAction Stop
+        }
+        catch {
+            Write-Host "  ⚠ 无法终止 PID $pid：$($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 1
+        if (-not (Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue)) {
+            Write-Host "  ✓ 端口 $Port 已释放" -ForegroundColor Green
+            return
+        }
+    }
+
+    if (Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue) {
+        Write-Host "  ⚠ 端口 $Port 仍被占用，可能需要手动处理 (Service: $ServiceName)。" -ForegroundColor Yellow
+    }
+}
+
+# ============================================================
 # 检查先决条件
 # ============================================================
 Write-Host "检查先决条件..." -ForegroundColor Yellow
@@ -137,34 +187,34 @@ Write-Host "[2/5] 启动 blog-user-service (端口 8083)..." -ForegroundColor Ye
 
 Set-Location "$rootPath\blog-user-service"
 
-# 检查端口是否占用
-$port8083 = Get-NetTCPConnection -LocalPort 8083 -ErrorAction SilentlyContinue
-if ($port8083) {
-    Write-Host "  端口 8083 已被占用，跳过启动" -ForegroundColor Yellow
-} else {
-    Write-Host "  编译 blog-user-service..." -ForegroundColor Gray
-    mvn clean compile -q
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  启动服务..." -ForegroundColor Gray
+Stop-ProcessUsingPort -Port 8083 -ServiceName "blog-user-service"
+if (Get-NetTCPConnection -LocalPort 8083 -ErrorAction SilentlyContinue) {
+    Write-Host "  ✗ 无法释放端口 8083，blog-user-service 启动失败" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "  编译 blog-user-service..." -ForegroundColor Gray
+mvn clean compile -q
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  启动服务..." -ForegroundColor Gray
     $userServiceCommand = "& { `$env:EUREKA_ENABLED='true'; `$env:EUREKA_URI='$eurekaUri'; `$env:EUREKA_REGISTER='true'; `$env:EUREKA_FETCH='true'; cd '$rootPath\blog-user-service'; mvn spring-boot:run }"
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $userServiceCommand
-        
-        # 等待服务启动
-        Write-Host "  等待服务启动..." -ForegroundColor Gray
-        Start-Sleep -Seconds 10
-        
-        # 验证服务
-        try {
-            $health = Invoke-RestMethod -Uri "http://localhost:8083/api/users/1" -Method Get -ErrorAction Stop
-            Write-Host "  ✓ blog-user-service 启动成功!" -ForegroundColor Green
-        } catch {
-            Write-Host "  ⚠ blog-user-service 可能需要更多时间启动" -ForegroundColor Yellow
-        }
-    } else {
-        Write-Host "  ✗ 编译失败" -ForegroundColor Red
-        exit 1
+    
+    # 等待服务启动
+    Write-Host "  等待服务启动..." -ForegroundColor Gray
+    Start-Sleep -Seconds 10
+    
+    # 验证服务
+    try {
+        $health = Invoke-RestMethod -Uri "http://localhost:8083/api/users/1" -Method Get -ErrorAction Stop
+        Write-Host "  ✓ blog-user-service 启动成功!" -ForegroundColor Green
+    } catch {
+        Write-Host "  ⚠ blog-user-service 可能需要更多时间启动" -ForegroundColor Yellow
     }
+} else {
+    Write-Host "  ✗ 编译失败" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host ""
@@ -176,34 +226,34 @@ Write-Host "[3/5] 启动 blog-article-service (端口 8082)..." -ForegroundColor
 
 Set-Location "$rootPath\blog-article-service"
 
-# 检查端口是否占用
-$port8082 = Get-NetTCPConnection -LocalPort 8082 -ErrorAction SilentlyContinue
-if ($port8082) {
-    Write-Host "  端口 8082 已被占用，跳过启动" -ForegroundColor Yellow
-} else {
-    Write-Host "  编译 blog-article-service..." -ForegroundColor Gray
-    mvn clean compile -q
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  启动服务..." -ForegroundColor Gray
+Stop-ProcessUsingPort -Port 8082 -ServiceName "blog-article-service"
+if (Get-NetTCPConnection -LocalPort 8082 -ErrorAction SilentlyContinue) {
+    Write-Host "  ✗ 无法释放端口 8082，blog-article-service 启动失败" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "  编译 blog-article-service..." -ForegroundColor Gray
+mvn clean compile -q
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  启动服务..." -ForegroundColor Gray
     $articleServiceCommand = "& { `$env:EUREKA_ENABLED='true'; `$env:EUREKA_URI='$eurekaUri'; `$env:EUREKA_REGISTER='true'; `$env:EUREKA_FETCH='true'; cd '$rootPath\blog-article-service'; mvn spring-boot:run }"
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $articleServiceCommand
-        
-        # 等待服务启动
-        Write-Host "  等待服务启动..." -ForegroundColor Gray
-        Start-Sleep -Seconds 12
-        
-        # 验证服务
-        try {
-            $health = Invoke-RestMethod -Uri "http://localhost:8082/actuator/health" -Method Get -ErrorAction Stop
-            Write-Host "  ✓ blog-article-service 启动成功!" -ForegroundColor Green
-        } catch {
-            Write-Host "  ⚠ blog-article-service 可能需要更多时间启动" -ForegroundColor Yellow
-        }
-    } else {
-        Write-Host "  ✗ 编译失败" -ForegroundColor Red
-        exit 1
+    
+    # 等待服务启动
+    Write-Host "  等待服务启动..." -ForegroundColor Gray
+    Start-Sleep -Seconds 12
+    
+    # 验证服务
+    try {
+        $health = Invoke-RestMethod -Uri "http://localhost:8082/actuator/health" -Method Get -ErrorAction Stop
+        Write-Host "  ✓ blog-article-service 启动成功!" -ForegroundColor Green
+    } catch {
+        Write-Host "  ⚠ blog-article-service 可能需要更多时间启动" -ForegroundColor Yellow
     }
+} else {
+    Write-Host "  ✗ 编译失败" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host ""
@@ -242,20 +292,20 @@ if (-not (Test-Path "$rootPath\blog-frontend\node_modules")) {
     Write-Host "  已检测到 node_modules，跳过安装" -ForegroundColor Gray
 }
 
-# 检查端口是否占用
-$frontendPortUsed = Get-NetTCPConnection -LocalPort $frontendPort -ErrorAction SilentlyContinue
-if ($frontendPortUsed) {
-    Write-Host "  端口 $frontendPort 已被占用，跳过启动" -ForegroundColor Yellow
-} else {
-    Write-Host "  启动前端开发服务器..." -ForegroundColor Gray
-    $frontendCommand = "& { cd '$rootPath\blog-frontend'; npm run dev -- --host }"
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand
-
-    Write-Host "  等待前端启动..." -ForegroundColor Gray
-    Start-Sleep -Seconds 5
-
-    Write-Host "  ✓ blog-frontend 已启动 (监听 http://localhost:$frontendPort)" -ForegroundColor Green
+Stop-ProcessUsingPort -Port $frontendPort -ServiceName "blog-frontend"
+if (Get-NetTCPConnection -LocalPort $frontendPort -ErrorAction SilentlyContinue) {
+    Write-Host "  ✗ 无法释放端口 $frontendPort，blog-frontend 启动失败" -ForegroundColor Red
+    exit 1
 }
+
+Write-Host "  启动前端开发服务器..." -ForegroundColor Gray
+$frontendCommand = "& { cd '$rootPath\blog-frontend'; npm run dev -- --host }"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand
+
+Write-Host "  等待前端启动..." -ForegroundColor Gray
+Start-Sleep -Seconds 5
+
+Write-Host "  ✓ blog-frontend 已启动 (监听 http://localhost:$frontendPort)" -ForegroundColor Green
 
 Set-Location $rootPath
 
@@ -283,34 +333,34 @@ Write-Host ""
 
 Set-Location "$rootPath\blog-auth-service"
 
-# 检查端口是否占用
-$port8081 = Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue
-if ($port8081) {
-    Write-Host "  端口 8081 已被占用，跳过启动" -ForegroundColor Yellow
-} else {
-    Write-Host "  编译 blog-auth-service..." -ForegroundColor Gray
-    mvn clean compile -q
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  启动服务..." -ForegroundColor Gray
+Stop-ProcessUsingPort -Port 8081 -ServiceName "blog-auth-service"
+if (Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue) {
+    Write-Host "  ✗ 无法释放端口 8081，blog-auth-service 启动失败" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "  编译 blog-auth-service..." -ForegroundColor Gray
+mvn clean compile -q
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  启动服务..." -ForegroundColor Gray
     $authServiceCommand = "& { `$env:EUREKA_ENABLED='true'; `$env:EUREKA_URI='$eurekaUri'; `$env:EUREKA_REGISTER='true'; `$env:EUREKA_FETCH='true'; cd '$rootPath\blog-auth-service'; mvn spring-boot:run }"
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $authServiceCommand
-        
-        # 等待服务启动
-        Write-Host "  等待服务启动..." -ForegroundColor Gray
-        Start-Sleep -Seconds 15
-        
-        # 验证服务
-        try {
-            $health = Invoke-RestMethod -Uri "http://localhost:8081/actuator/health" -Method Get -ErrorAction Stop
-            Write-Host "  ✓ blog-auth-service 启动成功!" -ForegroundColor Green
-        } catch {
-            Write-Host "  ⚠ blog-auth-service 可能需要更多时间启动" -ForegroundColor Yellow
-        }
-    } else {
-        Write-Host "  ✗ 编译失败" -ForegroundColor Red
-        exit 1
+    
+    # 等待服务启动
+    Write-Host "  等待服务启动..." -ForegroundColor Gray
+    Start-Sleep -Seconds 15
+    
+    # 验证服务
+    try {
+        $health = Invoke-RestMethod -Uri "http://localhost:8081/actuator/health" -Method Get -ErrorAction Stop
+        Write-Host "  ✓ blog-auth-service 启动成功!" -ForegroundColor Green
+    } catch {
+        Write-Host "  ⚠ blog-auth-service 可能需要更多时间启动" -ForegroundColor Yellow
     }
+} else {
+    Write-Host "  ✗ 编译失败" -ForegroundColor Red
+    exit 1
 }
 
 Set-Location $rootPath

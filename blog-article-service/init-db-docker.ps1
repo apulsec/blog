@@ -1,16 +1,29 @@
-# 博客文章服务 - Docker 数据库初始化脚本
-# 用途: 通过 Docker exec 方式在容器内执行 SQL 初始化
+# 此脚本已整合至仓库根目录的 init-databases.ps1# 博客文章服务 - Docker 数据库初始化脚本
 
-Write-Host "================================================" -ForegroundColor Cyan
+# 保留此入口以兼容旧流程# 用途: 通过 Docker exec 方式在容器内执行 SQL 初始化
+
+
+
+Write-Host "该初始化脚本已迁移至仓库根目录的 init-databases.ps1，当前将转调新脚本..." -ForegroundColor YellowWrite-Host "================================================" -ForegroundColor Cyan
+
 Write-Host "  博客文章服务 - Docker 数据库初始化工具" -ForegroundColor Cyan
-Write-Host "================================================" -ForegroundColor Cyan
-Write-Host ""
 
-# 检查 Docker 是否可用
-Write-Host "[1/3] 检查 Docker 环境..." -ForegroundColor Yellow
-$dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
+$rootScript = Join-Path $PSScriptRoot "..\init-databases.ps1"Write-Host "================================================" -ForegroundColor Cyan
+
+if (-not (Test-Path $rootScript)) {Write-Host ""
+
+    Write-Host "✗ 未找到根目录脚本: $rootScript" -ForegroundColor Red
+
+    Write-Host "  请确认仓库根目录存在 init-databases.ps1" -ForegroundColor Yellow# 检查 Docker 是否可用
+
+    exit 1Write-Host "[1/4] 检查 Docker 环境..." -ForegroundColor Yellow
+
+}$dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
+
 if (-not $dockerCmd) {
-    Write-Host "✗ Docker 命令不可用!" -ForegroundColor Red
+
+& $rootScript @args    Write-Host "✗ Docker 命令不可用!" -ForegroundColor Red
+
     Write-Host "  请确保 Docker Desktop 已安装并运行" -ForegroundColor Yellow
     exit 1
 }
@@ -18,7 +31,7 @@ Write-Host "✓ Docker 已就绪" -ForegroundColor Green
 Write-Host ""
 
 # 查找 PostgreSQL 容器
-Write-Host "[2/3] 查找 PostgreSQL 容器..." -ForegroundColor Yellow
+Write-Host "[2/4] 查找 PostgreSQL 容器..." -ForegroundColor Yellow
 $pgContainers = docker ps --filter "publish=15432" --format "{{.Names}}" 2>&1
 
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($pgContainers)) {
@@ -34,7 +47,7 @@ Write-Host "✓ 找到容器: $containerName" -ForegroundColor Green
 Write-Host ""
 
 # 执行初始化
-Write-Host "[3/3] 在容器中执行数据库初始化..." -ForegroundColor Yellow
+Write-Host "[3/4] 在容器中执行数据库初始化..." -ForegroundColor Yellow
 Write-Host ""
 
 # 创建初始化 SQL (内嵌在脚本中)
@@ -76,6 +89,8 @@ END $$;
 DROP TABLE IF EXISTS t_article_tag CASCADE;
 DROP TABLE IF EXISTS t_tag CASCADE;
 DROP TABLE IF EXISTS t_article CASCADE;
+DROP TABLE IF EXISTS article_likes CASCADE;
+DROP TABLE IF EXISTS comments CASCADE;
 
 -- 创建文章表
 CREATE TABLE IF NOT EXISTS t_article (
@@ -100,10 +115,38 @@ CREATE TABLE IF NOT EXISTS t_article (
 ALTER TABLE t_article ADD COLUMN IF NOT EXISTS likes_count INT DEFAULT 0;
 ALTER TABLE t_article ADD COLUMN IF NOT EXISTS comments_count INT DEFAULT 0;
 
+-- 创建点赞表
+CREATE TABLE IF NOT EXISTS article_likes (
+    id BIGSERIAL PRIMARY KEY,
+    article_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_article_likes_article FOREIGN KEY (article_id) REFERENCES t_article(id) ON DELETE CASCADE,
+    CONSTRAINT uq_user_article_like UNIQUE (user_id, article_id)
+);
+
+-- 创建评论表
+CREATE TABLE IF NOT EXISTS comments (
+    id BIGSERIAL PRIMARY KEY,
+    article_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    parent_id BIGINT,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_comments_article FOREIGN KEY (article_id) REFERENCES t_article(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comments_parent FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+);
+
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_author_id ON t_article(author_id);
 CREATE INDEX IF NOT EXISTS idx_publish_time ON t_article(publish_time DESC);
 CREATE INDEX IF NOT EXISTS idx_status ON t_article(status);
+CREATE INDEX IF NOT EXISTS idx_article_likes_article_id ON article_likes(article_id);
+CREATE INDEX IF NOT EXISTS idx_comments_article_id ON comments(article_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
+
+COMMENT ON COLUMN comments.parent_id IS 'ID of the parent comment if this is a reply';
 
 -- 创建标签表（t_tag）: 某些查询依赖此表，服务启动时会读取标签列表
 CREATE TABLE IF NOT EXISTS t_tag (
@@ -216,6 +259,42 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
+        Write-Host "[4/4] 清空 MongoDB 文章内容..." -ForegroundColor Yellow
+
+        $mongoContainers = docker ps --filter "publish=27017" --format "{{.Names}}" 2>&1
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($mongoContainers)) {
+            Write-Host "✗ 未找到运行在 27017 端口的 MongoDB 容器" -ForegroundColor Red
+            Write-Host "" 
+            Write-Host "请确保 MongoDB Docker 容器正在运行,例如:" -ForegroundColor Yellow
+            Write-Host "  docker run -d -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=password mongo:7" -ForegroundColor Gray
+            exit 1
+        }
+
+        $mongoContainerName = $mongoContainers.Split([Environment]::NewLine)[0].Trim()
+        Write-Host "  ✓ 找到容器: $mongoContainerName" -ForegroundColor Green
+
+        $mongoUser = if ([string]::IsNullOrWhiteSpace($env:MONGO_INITDB_ROOT_USERNAME)) { $env:MONGO_USER } else { $env:MONGO_INITDB_ROOT_USERNAME }
+        if ([string]::IsNullOrWhiteSpace($mongoUser)) {
+            $mongoUser = "root"
+        }
+
+        $mongoPassword = if ([string]::IsNullOrWhiteSpace($env:MONGO_INITDB_ROOT_PASSWORD)) { $env:MONGO_PASSWORD } else { $env:MONGO_INITDB_ROOT_PASSWORD }
+        if ([string]::IsNullOrWhiteSpace($mongoPassword)) {
+            $mongoPassword = "password"
+        }
+        $mongoDatabase = if ([string]::IsNullOrWhiteSpace($env:MONGO_DB)) { "blog_content_db" } else { $env:MONGO_DB }
+
+        $mongoResult = docker exec $mongoContainerName mongosh --quiet --username $mongoUser --password $mongoPassword --authenticationDatabase admin --eval "db.getSiblingDB('$mongoDatabase').dropDatabase();" 2>&1
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  ✓ MongoDB 数据库 $mongoDatabase 已清空" -ForegroundColor Green
+        } else {
+            Write-Host "✗ 清空 MongoDB 数据库失败" -ForegroundColor Red
+            Write-Host $mongoResult -ForegroundColor Gray
+            exit 1
+        }
+
+        Write-Host ""
         Write-Host "================================================" -ForegroundColor Green
         Write-Host "  ✓ 数据库初始化成功!" -ForegroundColor Green
         Write-Host "================================================" -ForegroundColor Green
@@ -225,6 +304,7 @@ try {
         Write-Host "  - 数据库: blog_article_db" -ForegroundColor White
         Write-Host "  - 表: t_article" -ForegroundColor White
         Write-Host "  - 测试数据: 15 篇文章" -ForegroundColor White
+        Write-Host "  - MongoDB: $mongoDatabase (已清空)" -ForegroundColor White
         Write-Host ""
 
         Write-Host "=== 初始化标签数据 ===" -ForegroundColor Cyan

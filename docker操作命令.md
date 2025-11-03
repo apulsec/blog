@@ -64,7 +64,7 @@ docker run -d --name blog-mongodb -p 27017:27017 \
 **进入容器并连接 mongosh**
 
 ```bash
-docker exec -it blog-mongodb mongosh -u root -p password
+docker exec -it blog-mongo mongosh -u root -p password
 # 或
 docker exec -it <MongoDB 容器 ID 或名称> mongosh
 ```
