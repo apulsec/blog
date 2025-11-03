@@ -15,31 +15,31 @@
 
 1. **准备依赖**：Docker Desktop、Node.js 18、JDK 17、Maven 3.9、PowerShell 7。
 2. **克隆仓库**
-	```powershell
-	git clone <repo-url> blog
-	cd blog
-	```
+   ```powershell
+   git clone <repo-url> blog
+   cd blog
+   ```
 3. **启动基础设施**
-	```powershell
-	docker compose up -d
-	./check-db-status.ps1
-	```
+   ```powershell
+   docker compose up -d
+   ./check-db-status.ps1
+   ```
 4. **初始化数据库**
-	```powershell
-	./init-databases.ps1
-	```
-	脚本会自动定位 Docker 中的 PostgreSQL、MongoDB 容器，将 `database/sql/article-db-init.sql` 与 `database/sql/user-db-init.sql` 复制进容器执行，并清空 MongoDB 内容。
+   ```powershell
+   ./init-databases.ps1
+   ```
+   脚本会自动定位 Docker 中的 PostgreSQL、MongoDB 容器，将 `database/sql/article-db-init.sql` 与 `database/sql/user-db-init.sql` 复制进容器执行，并清空 MongoDB 内容。
 5. **启动前后端服务**
-	```powershell
-	./start-all-services.ps1
-	```
-	脚本依次启动 Eureka、用户服务、文章服务、认证服务以及前端应用，自动处理端口探测与依赖检查。
+   ```powershell
+   ./start-all-services.ps1
+   ```
+   脚本依次启动 Eureka、用户服务、文章服务、认证服务以及前端应用，自动处理端口探测与依赖检查。
 6. **冒烟测试**（可选）
-	```powershell
-	./test-frontend-services.ps1
-	./test-create-article.ps1
-	./test-notifications.ps1
-	```
+   ```powershell
+   ./test-frontend-services.ps1
+   ./test-create-article.ps1
+   ./test-notifications.ps1
+   ```
 
 访问 `http://localhost:5173` 验证前端页面；后端默认端口：认证 8081、文章 8082、用户 8083。
 
