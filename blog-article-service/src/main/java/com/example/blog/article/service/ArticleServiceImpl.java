@@ -3,16 +3,20 @@ package com.example.blog.article.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.blog.article.client.UserServiceClient;
+import com.example.blog.article.dto.ArticleMetricsDTO;
 import com.example.blog.article.dto.ArticleSummaryDTO;
+import com.example.blog.article.dto.HotArticleDTO;
 import com.example.blog.article.dto.CreateArticleRequest;
 import com.example.blog.article.dto.CommentDTO;
 import com.example.blog.article.dto.CreateNotificationRequest;
 import com.example.blog.article.dto.UserDTO;
 import com.example.blog.article.entity.Article;
 import com.example.blog.article.entity.ArticleContent;
+import com.example.blog.article.entity.ArticleMetrics;
 import com.example.blog.article.entity.ArticleTag;
 import com.example.blog.article.entity.Tag;
 import com.example.blog.article.mapper.ArticleMapper;
+import com.example.blog.article.mapper.ArticleMetricsMapper;
 import com.example.blog.article.mapper.ArticleTagMapper;
 import com.example.blog.article.mapper.TagMapper;
 import com.example.blog.article.messaging.ArticleNotificationPublisher;
@@ -31,7 +35,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -39,9 +46,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.Objects;
 
 /**
  * Implementation of ArticleService.
@@ -65,6 +72,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final ArticleContentRepository articleContentRepository;
     private final TagMapper tagMapper;
     private final ArticleTagMapper articleTagMapper;
+    private final ArticleMetricsMapper articleMetricsMapper;
     private final ArticleLikeRepository articleLikeRepository;
     private final CommentRepository commentRepository;
 
@@ -74,14 +82,16 @@ public class ArticleServiceImpl implements ArticleService {
                               ArticleContentRepository articleContentRepository,
                               TagMapper tagMapper,
                               ArticleTagMapper articleTagMapper,
+                              ArticleMetricsMapper articleMetricsMapper,
                               ArticleLikeRepository articleLikeRepository,
                               CommentRepository commentRepository) {
         this.articleMapper = articleMapper;
         this.userServiceClient = userServiceClient;
-    this.notificationPublisher = notificationPublisher;
+        this.notificationPublisher = notificationPublisher;
         this.articleContentRepository = articleContentRepository;
         this.tagMapper = tagMapper;
         this.articleTagMapper = articleTagMapper;
+        this.articleMetricsMapper = articleMetricsMapper;
         this.articleLikeRepository = articleLikeRepository;
         this.commentRepository = commentRepository;
     }
@@ -234,7 +244,17 @@ public class ArticleServiceImpl implements ArticleService {
         
         // Step 4: Save tags
         saveArticleTags(article.getId(), request.getTags());
-        
+
+        // Step 5: Seed analytics snapshot so downstream jobs have a baseline row
+        ArticleMetrics initialMetrics = new ArticleMetrics();
+        initialMetrics.setArticleId(article.getId());
+        initialMetrics.setMetricDate(LocalDate.now(ZoneOffset.UTC));
+        initialMetrics.setLikesCount(0);
+        initialMetrics.setCommentsCount(0);
+        initialMetrics.setHotScore(0D);
+        initialMetrics.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        articleMetricsMapper.insertSnapshot(initialMetrics);
+
         log.info("Created new article with ID: {} by author: {}", article.getId(), article.getAuthorId());
         return article;
     }
@@ -643,6 +663,8 @@ public class ArticleServiceImpl implements ArticleService {
         // Update likes_count in articles table
         articleMapper.incrementLikesCount(articleId);
 
+        adjustArticleMetricsCounters(articleId, 1, 0);
+
         sendArticleInteractionNotification(article, userId, NOTIFICATION_TYPE_LIKE, null);
     }
 
@@ -653,6 +675,8 @@ public class ArticleServiceImpl implements ArticleService {
             articleLikeRepository.delete(Objects.requireNonNull(like));
             // Update likes_count in articles table
             articleMapper.decrementLikesCount(articleId);
+
+            adjustArticleMetricsCounters(articleId, -1, 0);
         });
     }
 
@@ -684,6 +708,8 @@ public class ArticleServiceImpl implements ArticleService {
 
         // Update comments_count in articles table
         articleMapper.incrementCommentsCount(articleId);
+
+        adjustArticleMetricsCounters(articleId, 0, 1);
 
     sendArticleInteractionNotification(article, userId, NOTIFICATION_TYPE_COMMENT, buildCommentPreview(content));
 
@@ -738,6 +764,34 @@ public class ArticleServiceImpl implements ArticleService {
 
         commentRepository.delete(comment);
         articleMapper.decrementCommentsCount(articleId);
+
+        adjustArticleMetricsCounters(articleId, 0, -1);
+    }
+
+    @Override
+    public ArticleMetricsDTO getLatestArticleMetrics(Long articleId) {
+        ArticleMetrics metrics = articleMetricsMapper.findLatestByArticleId(articleId);
+        if (metrics == null) {
+            return null;
+        }
+
+        ArticleMetricsDTO dto = new ArticleMetricsDTO();
+        dto.setArticleId(metrics.getArticleId());
+        dto.setMetricDate(metrics.getMetricDate());
+        dto.setLikesCount(metrics.getLikesCount());
+        dto.setCommentsCount(metrics.getCommentsCount());
+        dto.setHotScore(metrics.getHotScore());
+        dto.setUpdatedAt(metrics.getUpdatedAt());
+        return dto;
+    }
+
+    @Override
+    public List<HotArticleDTO> getHotArticles(int days, int limit) {
+        int normalizedDays = Math.max(1, Math.min(days, 30));
+        int normalizedLimit = Math.max(1, Math.min(limit, 20));
+
+        LocalDate startDate = LocalDate.now(ZoneOffset.UTC).minusDays(normalizedDays - 1L);
+        return articleMetricsMapper.findHotArticles(startDate, normalizedLimit);
     }
 
     private void sendArticleInteractionNotification(Article article, Long actorId, String type, String content) {
@@ -781,6 +835,26 @@ public class ArticleServiceImpl implements ArticleService {
         userIds.add(comment.getUserId());
         if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
             comment.getReplies().forEach(reply -> collectCommentUserIds(reply, userIds));
+        }
+    }
+
+    private void adjustArticleMetricsCounters(Long articleId, int likeDelta, int commentDelta) {
+        if (likeDelta == 0 && commentDelta == 0) {
+            return;
+        }
+
+        double hotScoreDelta = likeDelta * 2.0 + commentDelta;
+        try {
+            articleMetricsMapper.upsertInteractionSnapshot(
+                    articleId,
+                    LocalDate.now(ZoneOffset.UTC),
+                    likeDelta,
+                    commentDelta,
+                    hotScoreDelta,
+                    OffsetDateTime.now(ZoneOffset.UTC)
+            );
+        } catch (Exception ex) {
+            log.warn("Failed to adjust article_metrics counters for article {}: {}", articleId, ex.getMessage());
         }
     }
 

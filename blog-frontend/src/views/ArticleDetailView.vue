@@ -56,7 +56,9 @@
                 <i class="fas fa-user"></i>
               </el-avatar>
               <div class="author-details">
-                <span class="author-name">{{ article.author?.username || "未知作者" }}</span>
+                <span class="author-name">{{
+                  article.author?.username || "未知作者"
+                }}</span>
                 <div class="meta-info">
                   <time class="publish-time">
                     <i class="fas fa-clock"></i>
@@ -794,6 +796,15 @@ onMounted(() => {
   font-size: 0.95rem;
   padding: 0.5rem 1rem;
   font-weight: 600;
+  color: #fff;
+}
+
+:deep(.tag-item .el-tag__content) {
+  color: #fff;
+}
+
+.tag-item i {
+  color: #fff;
 }
 
 .article-engagement {

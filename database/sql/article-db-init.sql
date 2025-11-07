@@ -45,6 +45,7 @@ DROP TABLE IF EXISTS t_tag CASCADE;
 DROP TABLE IF EXISTS t_article CASCADE;
 DROP TABLE IF EXISTS article_likes CASCADE;
 DROP TABLE IF EXISTS comments CASCADE;
+DROP TABLE IF EXISTS article_metrics CASCADE;
 
 -- Create t_article table
 CREATE TABLE IF NOT EXISTS t_article (
@@ -91,6 +92,17 @@ CREATE TABLE IF NOT EXISTS comments (
     CONSTRAINT fk_comments_parent FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
 );
 
+-- Create article_metrics table for Spark job outputs
+CREATE TABLE IF NOT EXISTS article_metrics (
+    article_id BIGINT NOT NULL REFERENCES t_article(id) ON DELETE CASCADE,
+    metric_date DATE NOT NULL,
+    likes_count INT NOT NULL DEFAULT 0,
+    comments_count INT NOT NULL DEFAULT 0,
+    hot_score DOUBLE PRECISION NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (article_id, metric_date)
+);
+
 -- Create tag tables
 CREATE TABLE IF NOT EXISTS t_tag (
     id BIGSERIAL PRIMARY KEY,
@@ -114,6 +126,7 @@ CREATE INDEX IF NOT EXISTS idx_status ON t_article(status);
 CREATE INDEX IF NOT EXISTS idx_article_likes_article_id ON article_likes(article_id);
 CREATE INDEX IF NOT EXISTS idx_comments_article_id ON comments(article_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_article_metrics_date ON article_metrics(metric_date DESC);
 
 COMMENT ON COLUMN comments.parent_id IS 'ID of the parent comment if this is a reply';
 

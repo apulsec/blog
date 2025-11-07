@@ -10,38 +10,11 @@
     <!-- Header -->
     <header class="header-card">
       <div class="header-content">
-        <div class="header-main">
-          <h1 class="header-title">
-            <i class="fas fa-user-circle"></i> 我的博客
-          </h1>
-          <p class="header-subtitle">
-            管理你的创作、关注互动，并随时掌握通知动态。
-          </p>
-          <div class="header-meta">
-            <div class="meta-item">
-              <span class="meta-label">
-                <i class="fas fa-book-open"></i>
-                我的文章
-              </span>
-              <span class="meta-value">{{ store.totalItems }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">
-                <i class="fas fa-bell"></i>
-                未读通知
-              </span>
-              <span class="meta-value">{{ notifications.unreadCount }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="header-actions">
-          <el-button type="primary" class="primary-action" @click="goToCreate">
-            <i class="fas fa-pen-nib"></i> 发布新文章
-          </el-button>
-          <el-button class="secondary-action" @click="handleRefresh">
-            <i class="fas fa-sync"></i> 刷新数据
-          </el-button>
-        </div>
+        <h1 class="header-title">
+          <i class="fas fa-user-circle"></i> 鎴戠殑鍗氬
+        </h1>
+        <p class="header-subtitle">
+          绠＄悊浣犵殑鍒涗綔銆佸叧娉ㄤ簰鍔紝骞堕殢鏃舵帉鎻￠€氱煡鍔ㄦ€併€?        </p>
       </div>
     </header>
 
@@ -50,21 +23,11 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="profile-card" v-if="auth.isAuthenticated">
-          <h3 class="sidebar-title"><i class="fas fa-id-card"></i> 个人资料</h3>
+          <h3 class="sidebar-title"><i class="fas fa-id-card"></i> 涓汉璧勬枡</h3>
           <div class="profile-content">
-            <div class="profile-avatar">
-              <el-avatar
-                class="profile-avatar-img"
-                shape="circle"
-                :size="80"
-                :src="auth.user?.avatarUrl"
-              >
-                {{ displayInitial }}
-              </el-avatar>
-              <span v-if="uploadingAvatar" class="avatar-loading">
-                <i class="fas fa-spinner fa-spin"></i>
-              </span>
-            </div>
+            <el-avatar shape="circle" :size="72" :src="auth.user?.avatarUrl">
+              {{ displayInitial }}
+            </el-avatar>
             <div class="profile-info">
               <span class="profile-name">{{ displayName }}</span>
               <el-button
@@ -74,9 +37,9 @@
                 :disabled="uploadingAvatar || cropperVisible"
                 @click="triggerAvatarUpload"
               >
-                <i class="fas fa-upload"></i> 更换头像
+                <i class="fas fa-upload"></i> 鏇存崲澶村儚
               </el-button>
-              <p class="profile-tip">支持 JPG/PNG/GIF/WebP，最大 5MB</p>
+              <p class="profile-tip">鏀寔 JPG/PNG/GIF/WebP锛屾渶澶?5MB</p>
             </div>
           </div>
           <input
@@ -89,7 +52,7 @@
         </div>
 
         <div class="sidebar-card">
-          <h3 class="sidebar-title"><i class="fas fa-bars"></i> 文章管理</h3>
+          <h3 class="sidebar-title"><i class="fas fa-bars"></i> 鏂囩珷绠＄悊</h3>
           <div class="sidebar-menu">
             <a
               @click.prevent="showAllArticles"
@@ -98,28 +61,26 @@
                 active: !store.currentStatus && store.currentTags.length === 0,
               }"
             >
-              <i class="fas fa-list"></i> 全部文章
+              <i class="fas fa-list"></i> 鍏ㄩ儴鏂囩珷
             </a>
             <a
               @click.prevent="showDrafts"
               class="menu-item"
               :class="{ active: store.currentStatus === 'DRAFT' }"
             >
-              <i class="fas fa-file-alt"></i> 草稿箱
-            </a>
+              <i class="fas fa-file-alt"></i> 鑽夌绠?            </a>
             <a
               @click.prevent="showPublished"
               class="menu-item"
               :class="{ active: store.currentStatus === 'PUBLISHED' }"
             >
-              <i class="fas fa-check-circle"></i> 已发布
-            </a>
+              <i class="fas fa-check-circle"></i> 宸插彂甯?            </a>
           </div>
         </div>
 
         <!-- Tags Card -->
         <div class="sidebar-card" v-if="store.availableTags.length > 0">
-          <h3 class="sidebar-title"><i class="fas fa-tags"></i> 标签筛选</h3>
+          <h3 class="sidebar-title"><i class="fas fa-tags"></i> 鏍囩绛涢€?/h3>
           <div class="tags-container">
             <el-tag
               v-for="tag in store.availableTags"
@@ -139,7 +100,7 @@
           </div>
           <div v-if="store.currentTags.length > 0" class="tags-info">
             <span class="tags-count"
-              >已选择 {{ store.currentTags.length }} 个标签</span
+              >宸查€夋嫨 {{ store.currentTags.length }} 涓爣绛?/span
             >
             <el-button
               text
@@ -147,23 +108,22 @@
               size="small"
               @click="store.clearFilters()"
             >
-              清除筛选
-            </el-button>
+              娓呴櫎绛涢€?            </el-button>
           </div>
         </div>
 
         <!-- Stats Card -->
         <div class="stats-card">
           <h3 class="stats-title">
-            <i class="fas fa-chart-line"></i> 统计信息
+            <i class="fas fa-chart-line"></i> 缁熻淇℃伅
           </h3>
           <div class="stats-content">
             <div class="stat-item">
-              <span class="stat-label">总文章数</span>
+              <span class="stat-label">鎬绘枃绔犳暟</span>
               <span class="stat-value">{{ store.totalItems }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">当前页</span>
+              <span class="stat-label">褰撳墠椤?/span>
               <span class="stat-value">{{ store.currentPage }}</span>
             </div>
           </div>
@@ -187,9 +147,17 @@
         <div class="filters-card">
           <div class="filters-content">
             <div class="filter-group">
+              <el-button
+                type="primary"
+                size="large"
+                class="create-btn"
+                @click="goToCreate"
+              >
+                <i class="fas fa-plus"></i> 鍒涘缓鏂版枃绔?              </el-button>
+
               <el-input
                 v-model="searchQuery"
-                placeholder="搜索文章标题或摘要..."
+                placeholder="鎼滅储鏂囩珷鏍囬鎴栨憳瑕?.."
                 class="search-input"
                 :prefix-icon="Search"
                 clearable
@@ -200,7 +168,7 @@
 
             <div class="filter-actions">
               <el-button @click="handleRefresh" class="action-btn">
-                <i class="fas fa-sync"></i> 刷新
+                <i class="fas fa-sync"></i> 鍒锋柊
               </el-button>
             </div>
           </div>
@@ -225,7 +193,7 @@
           <!-- Empty State -->
           <el-empty
             v-if="!store.articles || store.articles.length === 0"
-            description="暂无文章"
+            description="鏆傛棤鏂囩珷"
             class="empty-state"
           />
 
@@ -279,7 +247,7 @@ const searchQuery = ref("");
 const auth = useAuthStore();
 const notifications = useNotificationsStore();
 const notificationPanelOpen = ref(true);
-let searchTimeout = null; // 用于防抖
+let searchTimeout = null; // 鐢ㄤ簬闃叉姈
 
 const avatarInput = ref(null);
 const uploadingAvatar = ref(false);
@@ -295,7 +263,7 @@ const revokeObjectUrl = () => {
   }
 };
 
-const displayName = computed(() => auth.user?.username || "未命名用户");
+const displayName = computed(() => auth.user?.username || "鏈懡鍚嶇敤鎴?);
 
 const displayInitial = computed(() => {
   const name = displayName.value;
@@ -322,10 +290,10 @@ const bootstrapPersonalHome = async ({ resetPage = false } = {}) => {
 const handleNotificationsRefresh = async () => {
   try {
     await notifications.fetchNotifications();
-    ElMessage.success("通知已更新");
+    ElMessage.success("閫氱煡宸叉洿鏂?);
   } catch (err) {
     const message =
-      notifications.error || err?.response?.data?.message || "刷新通知失败";
+      notifications.error || err?.response?.data?.message || "鍒锋柊閫氱煡澶辫触";
     ElMessage.error(message);
   }
 };
@@ -336,12 +304,12 @@ const handleMarkAllNotificationsRead = async () => {
   }
   try {
     await notifications.markAllAsRead();
-    ElMessage.success("通知已全部标记为已读");
+    ElMessage.success("閫氱煡宸插叏閮ㄦ爣璁颁负宸茶");
   } catch (err) {
     const message =
       notifications.error ||
       err?.response?.data?.message ||
-      "操作失败，请稍后重试";
+      "鎿嶄綔澶辫触锛岃绋嶅悗閲嶈瘯";
     ElMessage.error(message);
   }
 };
@@ -352,12 +320,12 @@ const handleNotificationMarked = async (item) => {
   }
   try {
     await notifications.markAsRead(item.id);
-    ElMessage.success("已标记为已读");
+    ElMessage.success("宸叉爣璁颁负宸茶");
   } catch (err) {
     const message =
       notifications.error ||
       err?.response?.data?.message ||
-      "标记失败，请稍后重试";
+      "鏍囪澶辫触锛岃绋嶅悗閲嶈瘯";
     ElMessage.error(message);
   }
 };
@@ -420,13 +388,12 @@ const handleRefresh = () => {
  * Handle search input with debounce
  */
 const handleSearchInput = () => {
-  // 清除之前的定时器
+  // 娓呴櫎涔嬪墠鐨勫畾鏃跺櫒
   if (searchTimeout) {
     clearTimeout(searchTimeout);
   }
 
-  // 设置新的定时器，500ms后执行搜索
-  searchTimeout = setTimeout(() => {
+  // 璁剧疆鏂扮殑瀹氭椂鍣紝500ms鍚庢墽琛屾悳绱?  searchTimeout = setTimeout(() => {
     if (searchQuery.value.trim()) {
       store.searchArticles(searchQuery.value.trim());
     } else {
@@ -451,7 +418,7 @@ const showAllArticles = () => {
   store.currentStatus = null;
   store.currentTags = [];
   store.currentKeyword = "";
-  // 保持 currentAuthorId，只刷新数据
+  // 淇濇寔 currentAuthorId锛屽彧鍒锋柊鏁版嵁
   store.fetchArticles(1);
 };
 
@@ -497,14 +464,14 @@ const handleAvatarSelected = (event) => {
 
   const file = files[0];
   if (!file.type.startsWith("image/")) {
-    ElMessage.error("请选择图片文件");
+    ElMessage.error("璇烽€夋嫨鍥剧墖鏂囦欢");
     event.target.value = "";
     return;
   }
 
   const maxSize = 5 * 1024 * 1024;
   if (file.size > maxSize) {
-    ElMessage.error("图片大小不能超过 5MB");
+    ElMessage.error("鍥剧墖澶у皬涓嶈兘瓒呰繃 5MB");
     event.target.value = "";
     return;
   }
@@ -537,14 +504,14 @@ const handleCropConfirm = async (file) => {
   try {
     await auth.updateAvatar(file);
     await auth.fetchMe().catch(() => {});
-    ElMessage.success("头像更新成功");
+    ElMessage.success("澶村儚鏇存柊鎴愬姛");
     resetCropperState();
   } catch (e) {
     if (e?.sessionExpired || e?.response?.status === 401) {
       resetCropperState();
-      ElMessage.warning("登录已过期，请重新登录后再试");
+      ElMessage.warning("鐧诲綍宸茶繃鏈燂紝璇烽噸鏂扮櫥褰曞悗鍐嶈瘯");
     } else {
-      const message = e?.response?.data?.message || "头像上传失败，请稍后重试";
+      const message = e?.response?.data?.message || "澶村儚涓婁紶澶辫触锛岃绋嶅悗閲嶈瘯";
       ElMessage.error(message);
       cropperVisible.value = true;
     }
@@ -561,390 +528,187 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .home-view {
-  position: relative;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2.75rem 1.5rem 3rem;
-  min-height: 100vh;
-  z-index: 0;
+  padding: 0 1.25rem 2.5rem;
 }
 
-.home-view::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-      circle at 10% 12%,
-      rgba(244, 114, 182, 0.2),
-      transparent 55%
-    ),
-    radial-gradient(
-      circle at 90% 8%,
-      rgba(129, 140, 248, 0.16),
-      transparent 45%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(252, 231, 243, 0.78) 0%,
-      rgba(240, 249, 255, 0.75) 60%,
-      rgba(255, 255, 255, 0.92) 100%
-    );
-  filter: blur(0.25px);
-  z-index: -1;
-}
-
-/* Header */
+/* Header Styles */
 .header-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    rgba(244, 114, 182, 0.2),
-    rgba(56, 189, 248, 0.18)
-  );
-  border-radius: 1.5rem;
-  padding: 2.35rem 2.5rem;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(236, 72, 153, 0.18);
-  box-shadow: 0 28px 60px -38px rgba(236, 72, 153, 0.55);
-}
-
-.header-card::before,
-.header-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.header-card::before {
-  background: radial-gradient(
-      circle at 12% 18%,
-      rgba(236, 72, 153, 0.35),
-      transparent 45%
-    ),
-    radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.3), transparent 55%);
-}
-
-.header-card::after {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.2),
-    transparent 70%
-  );
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .header-content {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-  z-index: 1;
-}
-
-.header-main {
   display: flex;
   flex-direction: column;
-  gap: 1.35rem;
-  flex: 1 1 360px;
-  min-width: 0;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .header-title {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #111827;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  letter-spacing: -0.01em;
-}
-
-.header-title i {
-  font-size: 1.8rem;
-  color: #ec4899;
-  filter: drop-shadow(0 10px 25px rgba(236, 72, 153, 0.45));
+  gap: 0.5rem;
 }
 
 .header-subtitle {
   margin: 0;
-  color: #374151;
-  font-size: 1.02rem;
-  max-width: 38rem;
-  line-height: 1.7;
+  color: #6b7280;
+  font-size: 0.95rem;
+  max-width: 36rem;
+  line-height: 1.5;
 }
 
-.header-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.meta-item {
-  position: relative;
-  min-width: 150px;
-  padding: 0.8rem 1.1rem;
-  border-radius: 1.1rem;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(244, 114, 182, 0.22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.meta-label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: #be123c;
-  font-weight: 600;
-}
-
-.meta-label i {
-  font-size: 0.9rem;
-}
-
-.meta-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #831843;
-}
-
-.header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.primary-action,
-.secondary-action {
-  border-radius: 999px;
-  padding: 0.65rem 1.55rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.primary-action {
-  background: linear-gradient(120deg, #ec4899, #6366f1);
-  border: none;
-  color: #fff !important;
-  box-shadow: 0 20px 45px -24px rgba(236, 72, 153, 0.65);
-}
-
-.primary-action:hover {
-  box-shadow: 0 24px 55px -24px rgba(236, 72, 153, 0.7);
-}
-
-.secondary-action {
-  border: 1px solid rgba(236, 72, 153, 0.35);
-  background: rgba(255, 255, 255, 0.85);
-  color: #be123c !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.secondary-action:hover {
-  border-color: rgba(236, 72, 153, 0.48);
-}
-
-/* Layout */
+/* Content Layout */
 .content-wrapper {
   display: grid;
-  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-  gap: 1.75rem;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: 1.5rem;
   align-items: start;
-}
-
-.sidebar {
-  position: sticky;
-  top: 2rem;
-  align-self: start;
 }
 
 .main-content {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
   min-width: 0;
 }
 
-/* Sidebar Cards */
-.profile-card,
+@media (max-width: 1024px) {
+  .home-view {
+    padding: 0 1rem 2rem;
+  }
+
+  .content-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+/* Sidebar Styles */
 .sidebar-card,
 .stats-card {
-  background: rgba(255, 255, 255, 0.88);
-  border-radius: 1.3rem;
-  padding: 1.75rem;
-  margin-bottom: 1.75rem;
-  border: 1px solid rgba(236, 72, 153, 0.18);
-  box-shadow: 0 22px 52px -34px rgba(190, 24, 93, 0.4);
-  backdrop-filter: blur(8px);
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.profile-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
 }
 
 .profile-content {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-}
-
-.profile-avatar {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(236, 72, 153, 0.4),
-    rgba(56, 189, 248, 0.32)
-  );
-  box-shadow: 0 18px 40px -28px rgba(236, 72, 153, 0.55);
-}
-
-:deep(.profile-avatar .el-avatar) {
-  width: 84px;
-  height: 84px;
-  border-radius: 50% !important;
-  border: 3px solid rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.85);
-  color: #be123c;
-  font-weight: 700;
-  font-size: 1.6rem;
-}
-
-:deep(.profile-avatar .el-avatar img) {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.avatar-loading {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(236, 72, 153, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #be123c;
-  font-size: 1rem;
+  gap: 1rem;
 }
 
 .profile-info {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.5rem;
 }
 
 .profile-name {
-  font-weight: 700;
-  color: #111827;
-  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1.1rem;
 }
 
 .profile-tip {
   margin: 0;
-  font-size: 0.78rem;
-  color: #9f1239;
-  opacity: 0.75;
+  font-size: 0.75rem;
+  color: #9ca3af;
 }
 
 .avatar-input {
   display: none;
 }
 
-:deep(.profile-card .el-button) {
-  border-radius: 999px;
-  padding: 0.45rem 1.35rem;
-  background: linear-gradient(120deg, #ec4899, #f97316);
-  border: none;
-  box-shadow: 0 16px 40px -28px rgba(236, 72, 153, 0.55);
-}
-
 .sidebar-title,
 .stats-title {
-  font-size: 1.02rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   color: #1f2937;
-  margin: 0 0 1.1rem 0;
+  margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.sidebar-title i,
-.stats-title i {
-  color: #ec4899;
-}
-
 .sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .menu-item {
-  padding: 0.8rem 1rem;
-  border-radius: 0.85rem;
-  color: #7f1d1d;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid transparent;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  gap: 0.5rem;
   cursor: pointer;
 }
 
 .menu-item:hover,
 .menu-item.active {
-  border-color: rgba(236, 72, 153, 0.35);
-  color: #be123c;
-  box-shadow: 0 14px 28px -22px rgba(190, 24, 93, 0.55);
+  background: #eff6ff;
+  color: #3b82f6;
 }
 
-.tag-filter {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  color: white;
-  border: none;
-  font-weight: 500;
-  padding: 0.5rem 0.875rem;
-  user-select: none;
-  box-shadow: 0 14px 30px -24px rgba(190, 24, 93, 0.5);
-}
-
+/* Tags Container */
 .tags-container {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.tag-check {
-  margin-left: 0.4rem;
-  font-size: 0.75rem;
+.tag-filter {
+  cursor: pointer;
+  transition: all 0.2s;
+  color: white;
+  border: none;
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  position: relative;
+  user-select: none;
 }
 
 .tag-filter:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -18px rgba(190, 24, 93, 0.55);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .tag-active {
-  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.28);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
   transform: translateY(-2px);
   font-weight: 600;
+}
+
+.tag-check {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
 }
 
 .tags-info {
@@ -953,23 +717,16 @@ onBeforeUnmount(() => {
   align-items: center;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(244, 114, 182, 0.25);
+  border-top: 1px solid #f3f4f6;
 }
 
 .tags-count {
-  font-size: 0.85rem;
-  color: #9f1239;
-  font-weight: 600;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
 }
 
-:deep(.tags-info .el-button) {
-  border-radius: 999px;
-  padding: 0.25rem 0.9rem;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(236, 72, 153, 0.35);
-  color: #be123c;
-}
-
+/* Stats */
 .stats-content {
   display: flex;
   flex-direction: column;
@@ -979,8 +736,8 @@ onBeforeUnmount(() => {
 .stat-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.6rem 0;
-  border-bottom: 1px dashed rgba(244, 114, 182, 0.3);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .stat-item:last-child {
@@ -988,43 +745,22 @@ onBeforeUnmount(() => {
 }
 
 .stat-label {
-  color: #7f1d1d;
-  font-size: 0.88rem;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .stat-value {
-  color: #ec4899;
-  font-weight: 700;
+  color: #3b82f6;
+  font-weight: 600;
 }
 
-/* Filters */
+/* Filters Card */
+
 .filters-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(
-    120deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(252, 231, 243, 0.86)
-  );
-  border-radius: 1.35rem;
-  padding: 1.8rem 1.9rem;
-  box-shadow: 0 22px 48px -34px rgba(236, 72, 153, 0.45);
-  border: 1px solid rgba(252, 165, 165, 0.4);
-}
-
-.filters-card::after {
-  content: "";
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  right: -60px;
-  top: -80px;
-  background: radial-gradient(
-    circle,
-    rgba(236, 72, 153, 0.22),
-    transparent 70%
-  );
-  pointer-events: none;
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .filters-content {
@@ -1040,174 +776,9 @@ onBeforeUnmount(() => {
   gap: 1rem;
   flex: 1;
   flex-wrap: wrap;
-  align-items: center;
-}
-
-.search-input {
-  flex: 1;
-  max-width: 420px;
-}
-
-.filter-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-:deep(.filters-card .el-input__wrapper) {
-  border-radius: 999px;
-  padding: 0.1rem 1.05rem;
-  border: 1px solid rgba(244, 114, 182, 0.3);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-:deep(.filters-card .el-input__wrapper.is-focus) {
-  border-color: rgba(236, 72, 153, 0.55);
-  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.18);
-}
-
-:deep(.filters-card .el-input__inner) {
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
-}
-
-.action-btn {
-  border-radius: 999px;
-  padding: 0.55rem 1.4rem;
-  border: 1px solid rgba(236, 72, 153, 0.28);
-  background: rgba(255, 255, 255, 0.9);
-  color: #be123c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.action-btn i {
-  margin-right: 0.35rem;
-}
-
-/* Articles */
-.articles-container {
-  min-height: 420px;
-}
-
-.articles-list {
-  column-count: 2;
-  column-gap: 1.75rem;
-  column-fill: balance;
-}
-
-.article-item {
-  break-inside: avoid;
-  margin-bottom: 1.75rem;
-  transition: transform 0.25s ease, filter 0.25s ease;
-  display: block;
-}
-
-.article-item:hover {
-  transform: translateY(-4px);
-}
-
-.article-item :deep(.article-card) {
-  border: 1px solid rgba(236, 72, 153, 0.16);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(254, 242, 242, 0.9)
-  );
-  box-shadow: 0 28px 60px -36px rgba(190, 24, 93, 0.45);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.article-item:hover :deep(.article-card) {
-  box-shadow: 0 32px 70px -34px rgba(190, 24, 93, 0.55);
-}
-
-/* States */
-.loading-state {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 1.25rem;
-  padding: 2.25rem;
-  box-shadow: 0 24px 56px -36px rgba(190, 24, 93, 0.4);
-  border: 1px solid rgba(236, 72, 153, 0.2);
-}
-
-.error-alert {
-  border-radius: 1.25rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(254, 226, 226, 0.7);
-}
-
-.empty-state {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 1.25rem;
-  padding: 3rem;
-  box-shadow: 0 24px 56px -36px rgba(190, 24, 93, 0.4);
-  border: 1px solid rgba(236, 72, 153, 0.2);
-}
-
-/* Pagination */
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 2rem;
-  padding: 1.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 1.35rem;
-  box-shadow: 0 22px 48px -34px rgba(190, 24, 93, 0.4);
-  border: 1px solid rgba(236, 72, 153, 0.2);
-}
-
-:deep(.modern-pagination .el-pager li) {
-  border-radius: 0.6rem;
-  margin: 0 0.25rem;
-}
-
-:deep(.modern-pagination .el-pager li.is-active) {
-  background: linear-gradient(120deg, #ec4899, #6366f1);
-  box-shadow: 0 12px 24px -16px rgba(236, 72, 153, 0.55);
-}
-
-:deep(.modern-pagination .btn-prev),
-:deep(.modern-pagination .btn-next) {
-  border-radius: 0.6rem;
-  background: rgba(254, 242, 242, 0.9);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .home-view {
-    padding: 2rem 1.1rem 2.5rem;
-  }
-
-  .content-wrapper {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
-  }
-
-  .header-main {
-    flex: 1 1 100%;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 900px) {
-  .articles-list {
-    column-count: 1;
-  }
 }
 
 @media (max-width: 768px) {
-  .filters-card {
-    padding: 1.5rem;
-  }
-
   .filter-group {
     flex-direction: column;
     align-items: stretch;
@@ -1219,17 +790,99 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 640px) {
-  .header-content {
-    flex-direction: column;
-  }
+.create-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
 
-  .header-actions {
-    justify-content: stretch;
-  }
+.create-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
 
-  .header-meta {
-    width: 100%;
-  }
+.create-btn i {
+  margin-right: 0.5rem;
+}
+
+.filter-select {
+  width: 150px;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 400px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  border-radius: 0.5rem;
+}
+
+/* Articles Container */
+.articles-container {
+  min-height: 400px;
+}
+
+.articles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.article-item {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Loading & Error States */
+.loading-state {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.error-alert {
+  border-radius: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.empty-state {
+  background: white;
+  border-radius: 1rem;
+  padding: 3rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Pagination */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+:deep(.modern-pagination .el-pager li) {
+  border-radius: 0.5rem;
+  margin: 0 0.25rem;
+}
+
+:deep(.modern-pagination .el-pager li.is-active) {
+  background-color: #3b82f6;
+}
+
+:deep(.modern-pagination .btn-prev),
+:deep(.modern-pagination .btn-next) {
+  border-radius: 0.5rem;
 }
 </style>

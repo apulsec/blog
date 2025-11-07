@@ -15,7 +15,13 @@
         </span>
       </div>
       <div class="notifications-header-actions" @click.stop>
-        <el-button text type="primary" size="small" @click="emitRefresh">
+        <el-button
+          text
+          type="primary"
+          size="small"
+          class="notifications-refresh-btn"
+          @click="emitRefresh"
+        >
           刷新
         </el-button>
         <el-button
@@ -247,6 +253,14 @@ const resolveDateTime = (value) => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.notifications-refresh-btn {
+  color: #fff !important;
+}
+
+:deep(.notifications-refresh-btn .el-button__text) {
+  color: #fff !important;
 }
 
 .toggle-icon {

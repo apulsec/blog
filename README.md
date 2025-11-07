@@ -9,6 +9,7 @@
 - `blog-user-service`：Spring Boot 用户服务，管理用户资料与认证信息，消费 RabbitMQ 消息生成通知。
 - `blog-auth-service`：Spring Boot 认证服务，提供基于 JWT 的登录/刷新/登出能力，并借助 Redis 管理令牌黑名单。
 - `blog-eureka-server`：Spring Cloud Eureka 服务发现中心。
+- `analytics-spark-job`：Apache Spark 批处理作业（本地模式），每天聚合文章互动指标并写入 PostgreSQL 的 `article_metrics` 表。
 - `database/sql`：集中化的数据库初始化脚本目录，与根目录 PowerShell 脚本配合使用。
 
 ## 快速开始
@@ -49,6 +50,21 @@
 - `start-all-services.ps1`：一键启动后端与前端，附带端口冲突检测与环境准备。
 - `check-db-status.ps1`：快速检查 PostgreSQL/MongoDB/Redis 连通性。
 - `test-*.ps1`：端到端验证脚本，覆盖文章列表、通知、JWT 流程等关键链路。
+- `run-article-metrics.ps1`：在本机 Spark 环境下构建并执行批处理作业，将聚合结果写入 `article_metrics` 表，供文章服务读取。
+
+## Spark 数据分析快速开始
+
+1. 安装 [Apache Spark 3.5.x](https://spark.apache.org/downloads.html)，并在终端中配置 `SPARK_HOME` 环境变量，确保 `%SPARK_HOME%\bin\spark-submit` 可执行。
+2. 初始化数据库：`./init-databases.ps1` 会自动创建 `article_metrics` 表。
+3. 构建并运行分析作业：
+   ```powershell
+   ./run-article-metrics.ps1
+   ```
+   可通过参数覆盖默认值，例如：
+   ```powershell
+   ./run-article-metrics.ps1 -MetricDate 2025-11-06 -JdbcUrl "jdbc:postgresql://localhost:15432/blog_article_db"
+   ```
+4. 调用 `GET /api/articles/{id}/metrics`（由 `blog-article-service` 提供）即可验证聚合结果。
 
 ## 状态追踪与进一步阅读
 

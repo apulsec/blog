@@ -128,6 +128,17 @@ export const articleApi = {
   },
 
   /**
+   * Fetches hot articles ranked by aggregated hot score within a time window.
+   *
+   * @param {number} days  Time window in days (default: 7)
+   * @param {number} limit Maximum number of articles to retrieve (default: 5)
+   * @returns {Promise}
+   */
+  getHotArticles(days = 7, limit = 5) {
+    return apiClient.get("/articles/hot", { params: { days, limit } });
+  },
+
+  /**
    * Likes the specified article for the current user.
    *
    * @param {number|string} articleId - Article ID
